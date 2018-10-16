@@ -1,4 +1,4 @@
-import scalaz.meta.{instances, Typeclass}
+import scalaz.meta.{instances, orphan, Typeclass}
 
 trait Marker extends Typeclass {
 }
@@ -17,7 +17,7 @@ trait Band[A] extends Monoid[A]
 
 trait Semilattice[A] extends Band[A] with CommutativeMonoid[A]
 
-trait Invariant[F[_]] {
+trait Invariant[F[_]] extends Typeclass {
   def xmap[A, B](to: A => B, from: B => A)(fa: F[A]): F[B]
 }
 
@@ -31,38 +31,49 @@ trait Functor[F[_]] extends Invariant[F] {
   override def xmap[A, B](to: A => B, from: B => A)(fa: F[A]): F[B] = map[A, B](to)(fa)
 }
 
-case class Identity[A](a: A)
+trait Apply[F[_]] extends Functor[F] {
+  def ap[A, B](ff: F[A => B])(fa: F[A]): F[B]
+}
 
-@instances object Identity {
-//  implicit def monoid[A](implicit A: Monoid[A]): Monoid[Identity[A]] = new Monoid[Identity[A]] {
-//    def mappend(fst: Identity[A], snd: Identity[A]): Identity[A] = Identity(A.mappend(fst.a, snd.a))
-//    def mempty: Identity[A] = Identity[A](A.mempty)
+//case class Identity[A](a: A)
+//
+//@instances object Identity {
+////  implicit def monoid[A](implicit A: Monoid[A]): Monoid[Identity[A]] = new Monoid[Identity[A]] {
+////    def mappend(fst: Identity[A], snd: Identity[A]): Identity[A] = Identity(A.mappend(fst.a, snd.a))
+////    def mempty: Identity[A] = Identity[A](A.mempty)
+////  }
+////
+////  implicit def semilattice[A](implicit A: Semilattice[A]): Semilattice[Identity[A]] =
+////    new Semilattice[Identity[A]] {}
+//
+//  implicit def functor: Functor[Identity] = new Functor[Identity] {
+//    def map[A, B](atb: A => B)(fa: Identity[A]): Identity[B] = Identity(atb(fa.a))
 //  }
 //
-//  implicit def semilattice[A](implicit A: Semilattice[A]): Semilattice[Identity[A]] =
-//    new Semilattice[Identity[A]] {}
+//}
+//
+//case class Const[A, B](a: A)
+//
+//@instances object Const {
+//  type C[A] = {type l[B] = Const[A, B]}
+//  def functor[X]: Functor[C[X]#l] = new Functor[C[X]#l] {
+//    def map[A, B](to: A => B)(fa: Const[X, A]): Const[X, B] = Const(fa.a)
+//  }
+//}
 
-  implicit def functor: Functor[Identity] = new Functor[Identity] {
-    def map[A, B](atb: A => B)(fa: Identity[A]): Identity[B] = Identity(atb(fa.a))
-  }
-
-}
-
-case class Const[A, B](a: A)
-
-@instances object Const {
-  type C[A] = {type l[B] = Const[A, B]}
-  def functor[X]: Functor[C[X]#l] = new Functor[C[X]#l] {
-    def map[A, B](to: A => B)(fa: Const[X, A]): Const[X, B] = Const(fa.a)
-  }
-}
+case class Const2[A, B](a: A)
 
 @instances object Const2 {
-  type C[A] = {type l[B] = Const[A, B]}
-  def instance[X]: Functor[C[X]#l] with Contravariant[C[X]#l] =
+  type C[A] = {type l[B] = Const2[A, B]}
+  implicit def fInstance[X]: Functor[C[X]#l] with Contravariant[C[X]#l] =
     new Functor[C[X]#l] with Contravariant[C[X]#l] {
-      def map[A, B](to: A => B)(fa: Const[X, A]): Const[X, B] = Const(fa.a)
-      def contramap[A, B](from: B => A)(fa: Const[X, A]): Const[X, B] = Const(fa.a)
+      def map[A, B](to: A => B)(fa: Const2[X, A]): Const2[X, B] = Const2(fa.a)
+      def contramap[A, B](from: B => A)(fa: Const2[X, A]): Const2[X, B] = Const2(fa.a)
+    }
+
+  implicit def aInstance[X]: Apply[C[X]#l] =
+    new Apply[C[X]#l] {
+      def ap[A, B](ff: Const2[X, A => B])(fa: Const2[X, A]): Const2[X, B] = Const2(fa.a)
     }
 }
 
